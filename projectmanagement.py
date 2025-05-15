@@ -43,10 +43,10 @@ if uploaded_files:
     )
     filtered_df = df[mask]
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
         "📊 Summary", "📈 Visualizations", "⏱️ Task Duration Distribution",
         "👤 User Drilldown", "☁️ Word Cloud", "📅 Calendar Heatmap",
-        "📑 All Uploaded Data", "👥 User Comparison Dashboard"
+        "📑 All Uploaded Data", "👥 User Comparison Dashboard", "⚠️ Outlier Detection"
     ])
 
     with tab1:
@@ -88,7 +88,6 @@ if uploaded_files:
             fig_bar = px.bar(task_summary, x='task', y='minutes', title='Total Minutes by Task Type', text_auto=True)
             st.plotly_chart(fig_bar, use_container_width=True)
 
-    # Replaced tab3 with Task Duration Distribution
     with tab3:
         st.subheader("Task Duration Distribution")
         fig_hist = px.histogram(
@@ -180,6 +179,24 @@ if uploaded_files:
             title="User Performance Comparison"
         )
         st.plotly_chart(fig, use_container_width=True)
+
+    with tab9:
+        st.subheader("Outlier Detection (Task Duration)")
+        Q1 = filtered_df['minutes'].quantile(0.25)
+        Q3 = filtered_df['minutes'].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+
+        st.write(f"Outlier thresholds: Tasks shorter than {lower_bound:.2f} minutes or longer than {upper_bound:.2f} minutes.")
+
+        outliers = filtered_df[(filtered_df['minutes'] < lower_bound) | (filtered_df['minutes'] > upper_bound)]
+
+        if outliers.empty:
+            st.success("No outliers detected in task durations.")
+        else:
+            st.warning(f"Detected {outliers.shape[0]} outlier tasks:")
+            st.dataframe(outliers[['date', 'user_first_name', 'task', 'minutes']], use_container_width=True)
 
 else:
     st.info("Upload one or more CSV files to begin.")
