@@ -34,24 +34,18 @@ if uploaded_files:
 
     # Sidebar filters
     users = df['user_first_name'].dropna().unique()
-    locales = df['user_locale'].dropna().unique()
-    projects = df['project_id'].dropna().unique()
     min_date, max_date = df['date'].min(), df['date'].max()
 
     st.sidebar.subheader("Filter Data")
     selected_users = st.sidebar.multiselect("User", options=users, default=list(users))
-    selected_locales = st.sidebar.multiselect("Locale", options=locales, default=list(locales))
-    selected_projects = st.sidebar.multiselect("Project", options=projects, default=list(projects))
     selected_dates = st.sidebar.date_input("Date Range", [min_date, max_date])
 
     # Apply filters
     mask = (
         df['user_first_name'].isin(selected_users) &
-        df['user_locale'].isin(selected_locales) &
-        df['project_id'].isin(selected_projects) &
         (df['date'] >= selected_dates[0]) & (df['date'] <= selected_dates[1])
     )
-    filtered_df = df[mask]
+    filtered_df = df.loc[mask].copy()
 
     # Tabs for different views
     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
