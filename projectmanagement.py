@@ -106,6 +106,22 @@ if uploaded_files:
             labels={"minutes": "Task Duration (minutes)"}
         )
         st.plotly_chart(fig_box, use_container_width=True)
+        st.subheader("Outlier Detection (Task Duration)")
+        Q1 = filtered_df['minutes'].quantile(0.25)
+        Q3 = filtered_df['minutes'].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+
+        st.write(f"Outlier thresholds: Tasks shorter than {lower_bound:.2f} minutes or longer than {upper_bound:.2f} minutes.")
+
+        outliers = filtered_df[(filtered_df['minutes'] < lower_bound) | (filtered_df['minutes'] > upper_bound)]
+
+        if outliers.empty:
+            st.success("No outliers detected in task durations.")
+        else:
+            st.warning(f"Detected {outliers.shape[0]} outlier tasks:")
+            st.dataframe(outliers[['date', 'user_first_name', 'task', 'minutes']], use_container_width=True)
 
     with tab4:
         st.subheader("User Drilldown")
