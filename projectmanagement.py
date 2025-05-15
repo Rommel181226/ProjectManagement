@@ -32,7 +32,7 @@ def load_all_data(files):
 if uploaded_files:
     df = load_all_data(uploaded_files)
 
-    # Sidebar filters
+    # Sidebar filters (only user and date now)
     users = df['user_first_name'].dropna().unique()
     min_date, max_date = df['date'].min(), df['date'].max()
 
@@ -45,7 +45,7 @@ if uploaded_files:
         df['user_first_name'].isin(selected_users) &
         (df['date'] >= selected_dates[0]) & (df['date'] <= selected_dates[1])
     )
-    filtered_df = df.loc[mask].copy()
+    filtered_df = df[mask]
 
     # Tabs for different views
     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
@@ -55,13 +55,28 @@ if uploaded_files:
     ])
 
     with tab1:
-        st.subheader("Minutes Uploaded by Each User")
-        minute_table = filtered_df.groupby(['user_first_name'])['minutes'].sum().reset_index()
-        st.dataframe(minute_table, use_container_width=True)
+        st.subheader("User Summary")
 
-        st.subheader("User List")
-        user_table = df[['user_first_name', 'user_last_name', 'user_locale']].drop_duplicates().sort_values(by='user_first_name')
-        st.dataframe(user_table, use_container_width=True)
+        user_summary = (
+            filtered_df
+            .groupby(['user_first_name', 'user_last_name', 'user_locale'])
+            .agg(
+                Total_Minutes=('minutes', 'sum'),
+                Task_Count=('minutes', 'count'),
+                Avg_Minutes_Per_Task=('minutes', 'mean')
+            )
+            .reset_index()
+            .sort_values(by='Total_Minutes', ascending=False)
+        )
+        user_summary['Avg_Minutes_Per_Task'] = user_summary['Avg_Minutes_Per_Task'].round(2)
+        user_summary.columns = ['First Name', 'Last Name', 'Locale', 'Total Minutes', 'Task Count', 'Avg Minutes/Task']
+        st.dataframe(user_summary, use_container_width=True)
+
+        st.download_button(
+            label="📥 Download User Summary",
+            data=user_summary.to_csv(index=False),
+            file_name="user_summary.csv"
+        )
 
         total_minutes = filtered_df['minutes'].sum()
         avg_minutes = filtered_df['minutes'].mean()
