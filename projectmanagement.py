@@ -6,17 +6,14 @@ import os
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
-# Streamlit Page Config
 st.set_page_config(page_title="Task Dashboard", layout="wide")
 st.title("🗂️ Task Time Analysis Dashboard")
 
-# Sidebar - Logo and Title
 logo_path = os.path.join("images", "logo.png")
 if os.path.exists(logo_path):
     st.sidebar.image(logo_path, width=150)
 st.sidebar.markdown("## 📁 Task Dashboard Sidebar")
 
-# Sidebar - Upload multiple CSV files
 uploaded_files = st.sidebar.file_uploader("Upload CSV files", type=["csv"], accept_multiple_files=True)
 
 @st.cache_data
@@ -30,11 +27,9 @@ def load_all_data(files):
         combined.append(df)
     return pd.concat(combined, ignore_index=True)
 
-# Main Logic
 if uploaded_files:
     df = load_all_data(uploaded_files)
 
-    # Sidebar filters - only user and date now
     users = df['user_first_name'].dropna().unique()
     min_date, max_date = df['date'].min(), df['date'].max()
 
@@ -42,27 +37,22 @@ if uploaded_files:
     selected_users = st.sidebar.multiselect("User", options=users, default=list(users))
     selected_dates = st.sidebar.date_input("Date Range", [min_date, max_date])
 
-    # Apply filters
     mask = (
         df['user_first_name'].isin(selected_users) &
         (df['date'] >= selected_dates[0]) & (df['date'] <= selected_dates[1])
     )
     filtered_df = df[mask]
 
-    # Tabs for different views
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
-        "📊 Summary", "📈 Visualizations", "📋 Task Records",
+        "📊 Summary", "📈 Visualizations", "⏱️ Task Duration Distribution",
         "👤 User Drilldown", "☁️ Word Cloud", "📅 Calendar Heatmap",
         "📑 All Uploaded Data", "👥 User Comparison Dashboard"
     ])
 
     with tab1:
         st.subheader("User Minutes and Info")
-        # Aggregate minutes per user
         minutes_table = filtered_df.groupby('user_first_name')['minutes'].sum().reset_index()
-        # User info table
         user_info = df[['user_first_name', 'user_last_name', 'user_locale']].drop_duplicates()
-        # Merge on user_first_name
         summary_table = pd.merge(minutes_table, user_info, on='user_first_name', how='left')
         summary_table = summary_table.rename(columns={'minutes': 'total_minutes'})
         st.dataframe(summary_table.sort_values(by='total_minutes', ascending=False), use_container_width=True)
@@ -98,10 +88,25 @@ if uploaded_files:
             fig_bar = px.bar(task_summary, x='task', y='minutes', title='Total Minutes by Task Type', text_auto=True)
             st.plotly_chart(fig_bar, use_container_width=True)
 
+    # Replaced tab3 with Task Duration Distribution
     with tab3:
-        st.markdown("### Task Records")
-        st.dataframe(filtered_df[['date', 'user_first_name', 'user_last_name', 'task', 'minutes']], use_container_width=True)
-        st.download_button("📥 Download Filtered Data", data=filtered_df.to_csv(index=False), file_name="filtered_data.csv")
+        st.subheader("Task Duration Distribution")
+        fig_hist = px.histogram(
+            filtered_df,
+            x='minutes',
+            nbins=30,
+            title="Histogram of Task Durations (minutes)",
+            labels={"minutes": "Task Duration (minutes)"}
+        )
+        st.plotly_chart(fig_hist, use_container_width=True)
+
+        fig_box = px.box(
+            filtered_df,
+            y='minutes',
+            title="Boxplot of Task Durations",
+            labels={"minutes": "Task Duration (minutes)"}
+        )
+        st.plotly_chart(fig_box, use_container_width=True)
 
     with tab4:
         st.subheader("User Drilldown")
