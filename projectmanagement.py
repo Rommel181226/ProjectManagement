@@ -50,12 +50,27 @@ if uploaded_files:
     ])
 
     with tab1:
-        st.subheader("User Minutes and Info")
-        minutes_table = filtered_df.groupby('user_first_name')['minutes'].sum().reset_index()
-        user_info = df[['user_first_name', 'user_last_name', 'user_locale']].drop_duplicates()
-        summary_table = pd.merge(minutes_table, user_info, on='user_first_name', how='left')
-        summary_table = summary_table.rename(columns={'minutes': 'total_minutes'})
-        st.dataframe(summary_table.sort_values(by='total_minutes', ascending=False), use_container_width=True)
+        st.subheader("User Summary")
+        user_summary = (
+            filtered_df
+            .groupby(['user_first_name', 'user_last_name', 'user_locale'])
+            .agg(
+                Total_Minutes=('minutes', 'sum'),
+                Task_Count=('minutes', 'count'),
+                Avg_Minutes_Per_Task=('minutes', 'mean')
+            )
+            .reset_index()
+            .sort_values(by='Total_Minutes', ascending=False)
+        )
+        user_summary['Avg_Minutes_Per_Task'] = user_summary['Avg_Minutes_Per_Task'].round(2)
+        user_summary.columns = ['First Name', 'Last Name', 'Locale', 'Total Minutes', 'Task Count', 'Avg Minutes/Task']
+        st.dataframe(user_summary, use_container_width=True)
+
+        st.download_button(
+            label="📥 Download User Summary",
+            data=user_summary.to_csv(index=False),
+            file_name="user_summary.csv"
+        )
 
         total_minutes = filtered_df['minutes'].sum()
         avg_minutes = filtered_df['minutes'].mean()
@@ -65,7 +80,6 @@ if uploaded_files:
         col1.metric("Total Time Spent (min)", total_minutes)
         col2.metric("Average Time per Task (min)", round(avg_minutes, 2))
         col3.metric("Total Tasks", total_tasks)
-
     with tab2:
         st.markdown("### Time Spent per User")
         time_chart = filtered_df.groupby('user_first_name')['minutes'].sum().reset_index()
