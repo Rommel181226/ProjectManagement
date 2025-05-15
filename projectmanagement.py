@@ -3,8 +3,10 @@ import pandas as pd
 import plotly.express as px
 import calplot
 import os
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
 
-# Streamlit Page Config
+# Page Config
 st.set_page_config(page_title="Task Dashboard", layout="wide")
 st.title("🗂️ Task Time Analysis Dashboard")
 
@@ -14,7 +16,7 @@ if os.path.exists(logo_path):
     st.sidebar.image(logo_path, width=150)
 st.sidebar.markdown("## 📁 Task Dashboard Sidebar")
 
-# Sidebar - Upload multiple CSV files
+# Upload CSV Files
 uploaded_files = st.sidebar.file_uploader("Upload CSV files", type=["csv"], accept_multiple_files=True)
 
 @st.cache_data
@@ -28,11 +30,11 @@ def load_all_data(files):
         combined.append(df)
     return pd.concat(combined, ignore_index=True)
 
-# Main Logic
+# Main logic
 if uploaded_files:
     df = load_all_data(uploaded_files)
 
-    # Sidebar filters (only user and date now)
+    # Sidebar filters (only user and date)
     users = df['user_first_name'].dropna().unique()
     min_date, max_date = df['date'].min(), df['date'].max()
 
@@ -47,11 +49,10 @@ if uploaded_files:
     )
     filtered_df = df[mask]
 
-    # Tabs for different views
+    # Tabs: 7 Total
     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
         "📊 Summary", "📈 Visualizations", "📋 Task Records",
-        "👤 User Drilldown", "⏰ Hourly Analysis", "📅 Calendar Heatmap",
-        "📑 All Uploaded Data"
+        "👤 User Drilldown", "☁️ Word Cloud", "📅 Calendar Heatmap", "🗂️ All Uploaded Data"
     ])
 
     with tab1:
@@ -131,13 +132,17 @@ if uploaded_files:
         st.dataframe(user_df[['date', 'task', 'minutes']], use_container_width=True)
 
     with tab5:
-        st.subheader("Hourly Time-of-Day Analysis")
-        hourly_summary = filtered_df.groupby('hour')['minutes'].sum().reset_index()
-        fig_hour = px.bar(hourly_summary, x='hour', y='minutes', title="Minutes Logged by Hour of Day")
-        st.plotly_chart(fig_hour, use_container_width=True)
+        st.subheader("☁️ Word Cloud of Task Names")
+        task_weights = filtered_df.groupby('task')['minutes'].sum().to_dict()
+        wordcloud = WordCloud(width=1000, height=400, background_color='white').generate_from_frequencies(task_weights)
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.imshow(wordcloud, interpolation='bilinear')
+        ax.axis('off')
+        st.pyplot(fig)
 
     with tab6:
-        st.subheader("Calendar Heatmap")
+        st.subheader("📅 Calendar Heatmap")
         heatmap_data = filtered_df.groupby('date')['minutes'].sum().reset_index()
         heatmap_data['date'] = pd.to_datetime(heatmap_data['date'])
         heatmap_series = heatmap_data.set_index('date')['minutes']
@@ -152,12 +157,12 @@ if uploaded_files:
         st.pyplot(fig)
 
     with tab7:
-        st.subheader("All Uploaded Data (Before Filtering)")
+        st.subheader("🗂️ All Uploaded Data (Unfiltered)")
         st.dataframe(df, use_container_width=True)
         st.download_button(
             label="📥 Download All Uploaded Data",
             data=df.to_csv(index=False),
-            file_name="compiled_uploaded_data.csv"
+            file_name="all_uploaded_data.csv"
         )
 
 else:
