@@ -88,15 +88,7 @@ if uploaded_files:
             file_name="user_summary.csv"
         )
 
-        total_minutes = filtered_df['minutes'].sum()
-        avg_minutes = filtered_df['minutes'].mean()
-        total_tasks = filtered_df.shape[0]
-
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total Time Spent (min)", total_minutes)
-        col2.metric("Average Time per Task (min)", round(avg_minutes, 2))
-        col3.metric("Total Tasks", total_tasks)
-
+        
     with tab2:
         st.markdown("### Time Spent per User")
         time_chart = filtered_df.groupby('user_first_name')['minutes'].sum().reset_index()
