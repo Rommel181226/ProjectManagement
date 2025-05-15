@@ -57,7 +57,16 @@ if uploaded_files:
 
     with tab1:
         st.subheader("User Summary")
+        
+        total_minutes = filtered_df['minutes'].sum()
+        avg_minutes = filtered_df['minutes'].mean()
+        total_tasks = filtered_df.shape[0]
 
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Total Time Spent (min)", total_minutes)
+        col2.metric("Average Time per Task (min)", round(avg_minutes, 2))
+        col3.metric("Total Tasks", total_tasks)
+        
         user_summary = (
             filtered_df
             .groupby(['user_first_name', 'user_last_name', 'user_locale'])
