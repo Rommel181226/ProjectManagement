@@ -355,26 +355,40 @@ if uploaded_files:
 
     # --- Tab 10 ---
     with tab10:
-        st.subheader("🕒 Hourly Activity Heatmap")
-        if 'hour' in filtered_df.columns:
-            heatmap_df = filtered_df.copy()
-            heatmap_df['day'] = pd.to_datetime(heatmap_df['date']).dt.day_name()
-            pivot = heatmap_df.groupby(['hour', 'day'])['minutes'].sum().reset_index()
-            pivot_table = pivot.pivot(index='hour', columns='day', values='minutes').fillna(0)
-            ordered_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-            pivot_table = pivot_table.reindex(columns=ordered_days)
+    st.subheader("📈 Hourly Activity Line Graph")
+    if 'hour' in filtered_df.columns:
+        line_df = filtered_df.copy()
+        line_df['day'] = pd.to_datetime(line_df['date']).dt.day_name()
+        line_df['hour'] = line_df['hour'].astype(int)
 
-            fig = px.imshow(pivot_table, labels=dict(x="Day", y="Hour", color="Minutes"), 
-                            color_continuous_scale='YlOrRd')
-            st.plotly_chart(fig, use_container_width=True)
+        # Group and sum minutes by hour and day
+        grouped = line_df.groupby(['day', 'hour'])['minutes'].sum().reset_index()
 
-            st.markdown("### 🧠 AI Insight")
-            peak_hour = pivot.groupby('hour')['minutes'].sum().idxmax()
-            st.info(
-            f"Hourly heatmap analysis shows the busiest hour is **{peak_hour}:00**. "
-            f"This may reflect team work cycles or consistent meeting/work blocks.\n\n"
-            f"Low-activity hours might represent breaks or off-hours, but persistent dips during working hours could indicate disengagement or scheduling inefficiencies."
-              )
+        # Order days manually
+        ordered_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        grouped['day'] = pd.Categorical(grouped['day'], categories=ordered_days, ordered=True)
+        grouped = grouped.sort_values(['day', 'hour'])
 
-else:
-    st.info("Please upload one or more CSV files to get started.")
+        # Plot line chart
+        fig = px.line(
+            grouped,
+            x='hour',
+            y='minutes',
+            color='day',
+            markers=True,
+            labels={'hour': 'Hour of Day', 'minutes': 'Total Minutes'},
+            title='Hourly Activity Trends by Day'
+        )
+        fig.update_layout(xaxis=dict(dtick=1), height=500)
+        st.plotly_chart(fig, use_container_width=True)
+
+        st.markdown("### 🧠 AI Insight")
+        peak_hour = grouped.groupby('hour')['minutes'].sum().idxmax()
+        st.info(
+            f"The line chart shows that the peak hour across the week is **{peak_hour}:00**. "
+            f"This suggests consistent team engagement during this hour.\n\n"
+            f"Observe dips or plateaus for potential process improvements or break timings."
+        )
+
+    else:
+        st.info("Please upload one or more CSV files to get started.")
