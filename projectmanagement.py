@@ -355,7 +355,7 @@ if uploaded_files:
 
     # --- Tab 10 ---
     with tab10:
-    st.subheader("📈 Hourly Activity Line Graph")
+        st.subheader("📈 Hourly Activity Line Graph")
     if 'hour' in filtered_df.columns:
         line_df = filtered_df.copy()
         line_df['day'] = pd.to_datetime(line_df['date']).dt.day_name()
